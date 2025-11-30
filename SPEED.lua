@@ -159,11 +159,11 @@ local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
 local char = player.Character or player.CharacterAdded:Wait()
 local hum = char:WaitForChild("Humanoid")
+local hrp = char:WaitForChild("HumanoidRootPart")
 
 -- UI
 local gui = player:WaitForChild("PlayerGui"):WaitForChild("SpeedScreen")
 local main = gui:WaitForChild("Main")
-
 local btnToggle = main:WaitForChild("Button")
 local btnPlus  = main:WaitForChild("+")
 local btnMinus = main:WaitForChild("-")
@@ -172,54 +172,49 @@ local valueBox = main:WaitForChild("Value")
 ------------------------------------------------------
 -- CẤU HÌNH
 ------------------------------------------------------
-local defaultSpeed = hum.WalkSpeed
+local defaultSpeed = hum.WalkSpeed -- lấy speed hiện tại làm mặc định
 local speedValue = defaultSpeed
-local running = false     -- speed ON/OFF
-local lockSpeed = nil     -- connection update speed
+local running = false -- speed ON/OFF
 
 ------------------------------------------------------
--- HÀM GÁN SPEED LIÊN TỤC (30 lần/s)
+-- HÀM CẬP NHẬT VALUE BOX
+------------------------------------------------------
+local function updateValueBox()
+	valueBox.Text = tostring(speedValue)
+end
+updateValueBox()
+
+------------------------------------------------------
+-- HÀM SPEED UNIVERSAL
 ------------------------------------------------------
 local function startSpeedLock()
-	if lockSpeed then lockSpeed:Disconnect() end
-
-	lockSpeed = RunService.Heartbeat:Connect(function()
-		if running and hum then
-			hum.WalkSpeed = speedValue
+	RunService:BindToRenderStep("UniversalSpeed", Enum.RenderPriority.Character.Value, function(delta)
+		if running and hrp and hum then
+			local moveDir = hum.MoveDirection
+			if moveDir.Magnitude > 0 then
+				local velocity = moveDir.Unit * speedValue
+				hrp.Velocity = Vector3.new(velocity.X, hrp.Velocity.Y, velocity.Z)
+			end
 		end
 	end)
 end
 
 local function stopSpeedLock()
-	if lockSpeed then
-		lockSpeed:Disconnect()
-		lockSpeed = nil
-	end
-	if hum then
+	RunService:UnbindFromRenderStep("UniversalSpeed")
+	if hrp and hum then
+		-- khôi phục về speed mặc định (WalkSpeed)
 		hum.WalkSpeed = defaultSpeed
 	end
 end
 
 ------------------------------------------------------
--- CẬP NHẬT UI
-------------------------------------------------------
-local function updateValueBox()
-	valueBox.Text = tostring(speedValue)
-end
-
-updateValueBox()
-
-------------------------------------------------------
--- XỬ LÝ NHẬP TRỰC TIẾP TRONG TEXTBOX
+-- XỬ LÝ TEXTBOX
 ------------------------------------------------------
 valueBox.FocusLost:Connect(function()
-	local text = valueBox.Text
-	local num = tonumber(text)
-
+	local num = tonumber(valueBox.Text)
 	if num and num > 0 and num <= 500 then
 		speedValue = num
 	else
-		-- reset nếu giá trị sai
 		updateValueBox()
 	end
 end)
@@ -236,8 +231,7 @@ end)
 -- NÚT GIẢM
 ------------------------------------------------------
 btnMinus.MouseButton1Click:Connect(function()
-	speedValue = speedValue - 0.5
-	if speedValue < 0.5 then speedValue = 0.5 end
+	speedValue = math.max(0.5, speedValue - 0.5)
 	updateValueBox()
 end)
 
@@ -246,14 +240,13 @@ end)
 ------------------------------------------------------
 btnToggle.MouseButton1Click:Connect(function()
 	running = not running
-
 	if running then
 		btnToggle.Text = "ON"
-		btnToggle.BackgroundColor3 = Color3.fromRGB(0,255,0)
+		btnToggle.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
 		startSpeedLock()
 	else
 		btnToggle.Text = "OFF"
-		btnToggle.BackgroundColor3 = Color3.fromRGB(255,75,75)
+		btnToggle.BackgroundColor3 = Color3.fromRGB(255, 75, 75)
 		stopSpeedLock()
 	end
 end)
@@ -264,7 +257,7 @@ end)
 player.CharacterAdded:Connect(function(c)
 	char = c
 	hum = c:WaitForChild("Humanoid")
-
+	hrp = c:WaitForChild("HumanoidRootPart")
 	defaultSpeed = hum.WalkSpeed
 	if running then
 		startSpeedLock()
