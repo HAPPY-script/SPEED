@@ -115,7 +115,7 @@ UICorner3.CornerRadius = UDim.new(0.25, 0)
 UICorner3.Parent = Button
 
 local TextBox = Instance.new("TextBox")
-TextBox.Name = "TextBox"
+TextBox.Name = "Value"
 TextBox.Position = UDim2.new(0.5, 0, 0.5, 0)
 TextBox.Size = UDim2.new(0.35, 0, 0.35, 0)
 TextBox.BackgroundColor3 = Color3.new(1, 1, 1)
